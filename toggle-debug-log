@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+usage() {
+  echo "Usage: $0 <on|off>"
+  exit 1
+}
+
+insert_or_update_dotenv() {
+  local pattern="^$1:.*$"
+  local replace="$1: $2"
+  [[ ! -f .env ]] && echo "$replace" > .env && return 0
+
+  grep -qE "$pattern" .env && sed -i "s#$pattern#$replace#" .env || echo "$replace" >> .env
+}
+
+enable_debug_log() {
+  insert_or_update_dotenv "TF_LOG" "DEBUG"
+  insert_or_update_dotenv "TF_LOG_PATH" "./terraform.log"
+}
+
+disable_debug_log() {
+  sed -i "/^TF_LOG: /d" .env
+  sed -i "/^TF_LOG_PATH: /d" .env
+}
+
+main() {
+  [[ $# -eq 0 ]] && usage
+
+  case "$1" in
+  on)
+    enable_debug_log
+    ;;
+  off)
+    disable_debug_log
+    ;;
+  *)
+    usage
+  esac
+}
+
+main "$@"

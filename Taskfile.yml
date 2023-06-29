@@ -1,0 +1,102 @@
+version: '3'
+
+tasks:
+  default:
+    desc: Show this help page
+    cmds:
+      - printf "\n
+        CLI_ARGS refer to the name of the tfvars file - without extension - to be used for planning.\n
+        eg.:\ task yamllint -- dev\n
+        \n
+        CI variable\n
+        Providing the CI variable - with any value - prevents commands - for example terraform\n
+        - form prompting for user input.\n
+        Instead, they expect all necessary values to be provided by either configuration files or the command line.\n
+        \n
+        SI variable\n
+        SI stands for skip (terraform) init. Providing this variable with any value skips clear and init tasks.\n"
+      - task --list
+    silent: false
+
+  setup:
+    desc: "Runs auto-install.sh. Warning: auto-install.sh is for Ubuntu-based systems."
+    cmds:
+      - ./auto-install.sh
+
+  yamllint:
+    desc: yamllint
+    ignore_error: true
+    cmds:
+      - yamllint -c yamllint.yaml .
+
+  py:qa:
+    desc: Run python linters, formatters, etc.
+    cmds: # TODO:
+      - pass
+
+  # Terraform tasks
+  tf:clear:
+    desc: Clear .terraform directory. To skip, pass SI=true to this task.
+    status:
+      - "[ '{{.SI}}' != '<no value>' ]"
+    cmds:
+      - rm -rf /.terraform /.terraform.lock.hcl
+
+  tf:init:
+    desc: Run terraform init. To skip, pass SI=true to this task.
+    deps: [clear]
+    status:
+      - "[ '{{.SI}}' != '<no value>' ]"
+    cmds:
+      - terraform init
+
+  tf:fmt:
+    desc: Format all terraform code
+    cmds:
+      - terraform fmt -recursive
+
+  tf:validate:
+    desc: Validate Terraform code
+    deps: [yamllint, init, fmt]
+    cmds:
+      - terraform validate
+
+  tf:tflint:
+    desc: "Lint terraform code. WARNING: tflint is not recursive, meaning it checks the top module only."
+    deps: [validate]
+    cmds: 
+      - |
+        tflint --init -c .tflint.hcl && \
+        tflint -c .tflint.hcl
+
+  tf:plan:
+    desc: Create terraform plan file (tf.plan) in the selected environment
+    deps: [tflint]
+    cmds:
+      - terraform plan -out tf.plan
+
+  tf:apply:
+    desc: Apply terraform changes (approval required)
+    deps: [plan]
+    cmds:
+      - terraform apply {{ if .CI }} -input=false {{ end }} tf.plan
+
+  tf:destroy:
+    desc: Destroy selected environment (approval required)
+    deps: [plan]
+    cmds:
+      - terraform destroy
+
+# Debugging
+  tf:logs:enable:
+      desc: Enable terraform debug logging
+      cmds:
+          - toggle-debug-log on
+  tf:logs:disable:
+      desc: Disable terraform debug logging
+      cmds:
+          - toggle-debug-log off
+  tf:logs:parse-permissions:
+      desc: Parse terraform debug log for required permissions
+      cmds:
+          - "cat terraform.log | grep -E 'DEBUG: Request [^ ]+' -o | awk '{print $3}' | sort | uniq"
