@@ -21,6 +21,7 @@ These are the tools that are not strictly necessary for my solution to work or t
 
 # Notes
 
+- I had an unexpected git push error on 1st July at 23:40, which I could not resolve in time, so i manually uploaded a zip file of my work right before the deadline. I corrected the error on 2nd July at 0:20 and I am about to push the unzipped version of my work right now at 0:26
 - Created and tested on Manjaro Linux.
 - I did not use localstack and tflocal, because it introduced some problems with Terraform, which I did not have time to debug.
 Also, I do not refer to anything regarding AWS accounts in my Terraform code. Terraform reads such things under the hood after setting the AWS_PROFILE environment variable in the same shell session that is to be used by terraform and getting a session token with the command `aws sts get-session-token`.
