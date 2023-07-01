@@ -2,7 +2,7 @@ module "client_data_bucket" {
   source  = "terraform-aws-modules/s3-bucket/aws"
   version = "3.14.0"
 
-  bucket = "client-data-bucket2"
+  bucket = var.client_data_bucket_name
 
   force_destroy = true
   versioning = {
@@ -30,7 +30,6 @@ resource "aws_transfer_user" "client_sftp_user" {
   user_name      = "client"
   role           = aws_iam_role.client_data_s3_uploader.arn
   home_directory = "/client-data-bucket/"
-  # TODO: policy
 }
 
 resource "aws_transfer_ssh_key" "client_key" {
@@ -42,8 +41,6 @@ resource "aws_transfer_ssh_key" "client_key" {
   user_name = "client"
   body      = file("${path.module}/client_key.pub")
 }
-
-################################
 
 data "aws_iam_policy_document" "assume_role" {
   statement {
@@ -58,9 +55,8 @@ data "aws_iam_policy_document" "assume_role" {
   }
 }
 
-
 resource "aws_iam_role" "client_data_s3_uploader" {
-  name               = "client-assume-transfer"
+  name               = "client-s3-uploader"
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
 }
 

@@ -1,14 +1,10 @@
 version: '3'
 
-# TODO: be able to switch between terraform and terraform
 tasks:
   default:
     desc: Show this help page
     cmds:
       - printf "\n
-        CLI_ARGS refer to the name of the tfvars file - without extension - to be used for planning.\n
-        eg.:\ task yamllint -- dev\n
-        \n
         CI variable\n
         Providing the CI variable - with any value - prevents commands - for example terraform\n
         - form prompting for user input.\n
@@ -36,16 +32,9 @@ tasks:
       - docker pull pyfound/black:latest_release
       - docker pull infracost/infracost:ci-latest
 
-  # yamllint:
-  #   desc: yamllint
-  #   ignore_error: true
-  #   cmds:
-  #     - yamllint -c yamllint.yml .
-
   py:qa:
     desc: Run python linters, formatters, etc.
-    # TODO:
-    # deps: [pull-docker-images-for-tools]
+    deps: [pull-docker-images-for-tools]
     dir: lambda_src
     ignore_error: true
     cmds:
@@ -53,7 +42,6 @@ tasks:
       - docker run --rm -v ${PWD}:/code opensorcery/bandit -r /code
       - docker run --rm -v ${PWD}:/code eeacms/pylint
       - docker run --rm -v ${PWD}:/code eeacms/flake8
-
 
   # Terraform tasks
   tf:clear:
@@ -82,7 +70,6 @@ tasks:
   tf:validate:
     desc: Validate Terraform code
     dir: terraform
-    # TODO: yamllint
     deps: [tf:init, tf:fmt]
     cmds:
       - terraform validate
@@ -107,7 +94,6 @@ tasks:
     desc: Estimate infrastructure cost after running terraform plan
     dir: terraform
     deps: [tf:plan]
-    # TODO:
     cmds:
       - docker run --rm -e INFRACOST_API_KEY="$(cat ../secrets/infracost_api_key)" -v $PWD/:/code/ infracost/infracost:ci-latest breakdown --path /code/
 
@@ -147,6 +133,7 @@ tasks:
 
 # Other
 
+  # TODO:
   upload_to_s3:
     desc: Uploads client_data.json to S3. This triggers the entire workflow.
     cmds:

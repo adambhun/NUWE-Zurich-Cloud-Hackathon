@@ -2,9 +2,8 @@
 # Prerequistes
 
 - Everything defined in auto-install.sh except for localstack
-TODO:
-- A folder named `secrets`
-- SSH key pair named `client_key` in the secrets folder.
+<!-- - A folder named `secrets`
+- SSH key pair named `client_key` in the secrets folder. -->
 - Python 3.9 (EXACTLY, NOT NEWER!) due to the module lambda_s3_to_dynamodb's runtime input.
 
 ## Optional prerequisites
@@ -18,7 +17,6 @@ These are the tools that are not strictly necessary for my solution to work or t
 <!-- - tfcmt - [https://github.com/suzuki-shunsuke/tfcmt](https://github.com/suzuki-shunsuke/tfcmt) -  -->
 - pre-commit - [https://pre-commit.com](https://pre-commit.com) - git commit hooks
 - gitlint - [https://jorisroovers.com/gitlint/latest/](https://jorisroovers.com/gitlint/latest/) - validate git commit messages
-
 - Infracost API key in the secrets folder in a file named `infracost_api_key`.
 
 # Notes
@@ -32,7 +30,10 @@ Also, I do not refer to anything regarding AWS accounts in my Terraform code. Te
 - Code analysis for the lambda code with SonarQube
 - Reviewing IAM stuff to grant only the most needed permissions
 - Set up SQS queues for S3 upload events
-- Nice commit messages
+- Error handling and alerting for the lambda code
+- Nice commit messages, though I did install gitlint
+- Using tfvars more instead of hardcoding values
+- Fixing SFTP
 
 # Infrastructure
 ## Terraform backend
@@ -45,7 +46,7 @@ If you have task file installed, open a terminal in this directory and run the c
 
 After running `terraform apply` for the fist time, you might want to run `terraform init -force-copy` too, to copy the local state to the remote state backend.
 
-## Uploading files to S3
+## Uploading files to S3 - DOES NOT WORK!
 
 On a unix-based system from a terminal window in this folder:
 
@@ -55,9 +56,9 @@ Inside sftp shell:
 
 `put client_data.json`
 
-### Viewing approximate infrastructure costs
+## Viewing approximate infrastructure costs
 The infracost API can show a cost estimation for a Terraform plan file.
 Before using it, an API key must be requested by running the `infracost register` command.
 
 First `task plan` must be run, this creates a plan file.
-After that `task infracost>` can be executed to estimate the costs of the planned infrastructure.
+After that `task tf:infracost>` can be executed to estimate the costs of the planned infrastructure.

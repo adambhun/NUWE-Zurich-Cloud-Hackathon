@@ -12,9 +12,6 @@ module "lambda_s3_to_dynamodb" {
   create_package = true
   publish        = true
 
-  /* role_path   = "/tf-managed/"
-  policy_path = "/tf-managed/" */
-
   /* attach_dead_letter_policy = true
   dead_letter_target_arn    = aws_sqs_queue.dlq.arn */
 
@@ -53,6 +50,7 @@ resource "aws_s3_bucket_notification" "aws_lambda_trigger" {
   }
 }
 
+# TODO: is this redundant?
 # Provide permission to invoke lambda function when file is uploaded to S3 bucket
 resource "aws_lambda_permission" "file_lambda_permission" {
   statement_id  = "AllowS3Invoke"

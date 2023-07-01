@@ -255,3 +255,6 @@ terraform/builds/
 
 # terraform plans
 **/*.plan
+
+# for illustration and easy testing my terraform.tfvars file is included
+!terraform/terraform.tfvars
