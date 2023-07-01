@@ -1,5 +1,6 @@
 version: '3'
 
+# TODO: be able to switch between terraform and terraform
 tasks:
   default:
     desc: Show this help page
@@ -15,28 +16,49 @@ tasks:
         \n
         SI variable\n
         SI stands for skip (terraform) init. Providing this variable with any value skips clear and init tasks.\n"
+        \n
+        TF_LAMBDA_PACKAGE_LOG_LEVEL\n
+        See the "Debug" section at https://registry.terraform.io/modules/terraform-aws-modules/lambda/aws/latest
       - task --list
     silent: false
 
-  setup:
+  auto-install:
     desc: "Runs auto-install.sh. Warning: auto-install.sh is for Ubuntu-based systems."
     cmds:
       - ./auto-install.sh
 
-  yamllint:
-    desc: yamllint
-    ignore_error: true
+  pull-docker-images-for-tools:
+    desc: "Pull docker images for pylint, black, flake8, bandit and infracost."
     cmds:
-      - yamllint -c yamllint.yaml .
+      - docker pull opensorcery/bandit
+      - docker pull eeacms/pylint
+      - docker pull eeacms/flake8
+      - docker pull pyfound/black:latest_release
+      - docker pull infracost/infracost:ci-latest
+
+  # yamllint:
+  #   desc: yamllint
+  #   ignore_error: true
+  #   cmds:
+  #     - yamllint -c yamllint.yml .
 
   py:qa:
     desc: Run python linters, formatters, etc.
-    cmds: # TODO:
-      - pass
+    # TODO:
+    # deps: [pull-docker-images-for-tools]
+    dir: lambda_src
+    ignore_error: true
+    cmds:
+      - docker run --rm -v ${pwd}:/src --workdir /src pyfound/black:latest_release black --check .
+      - docker run --rm -v ${PWD}:/code opensorcery/bandit -r /code
+      - docker run --rm -v ${PWD}:/code eeacms/pylint
+      - docker run --rm -v ${PWD}:/code eeacms/flake8
+
 
   # Terraform tasks
   tf:clear:
     desc: Clear .terraform directory. To skip, pass SI=true to this task.
+    dir: terraform
     status:
       - "[ '{{.SI}}' != '<no value>' ]"
     cmds:
@@ -44,7 +66,8 @@ tasks:
 
   tf:init:
     desc: Run terraform init. To skip, pass SI=true to this task.
-    deps: [clear]
+    dir: terraform
+    deps: [tf:clear]
     status:
       - "[ '{{.SI}}' != '<no value>' ]"
     cmds:
@@ -52,18 +75,22 @@ tasks:
 
   tf:fmt:
     desc: Format all terraform code
+    dir: terraform
     cmds:
       - terraform fmt -recursive
 
   tf:validate:
     desc: Validate Terraform code
-    deps: [yamllint, init, fmt]
+    dir: terraform
+    # TODO: yamllint
+    deps: [tf:init, tf:fmt]
     cmds:
       - terraform validate
 
   tf:tflint:
     desc: "Lint terraform code. WARNING: tflint is not recursive, meaning it checks the top module only."
-    deps: [validate]
+    dir: terraform
+    deps: [tf:validate]
     cmds: 
       - |
         tflint --init -c .tflint.hcl && \
@@ -71,32 +98,56 @@ tasks:
 
   tf:plan:
     desc: Create terraform plan file (tf.plan) in the selected environment
-    deps: [tflint]
+    dir: terraform
+    deps: [tf:tflint]
     cmds:
       - terraform plan -out tf.plan
 
+  tf:infracost:
+    desc: Estimate infrastructure cost after running terraform plan
+    dir: terraform
+    deps: [tf:plan]
+    # TODO:
+    cmds:
+      - docker run --rm -e INFRACOST_API_KEY="$(cat ../secrets/infracost_api_key)" -v $PWD/:/code/ infracost/infracost:ci-latest breakdown --path /code/
+
   tf:apply:
     desc: Apply terraform changes (approval required)
-    deps: [plan]
+    dir: terraform
+    deps: [tf:plan]
+    # TODO:
+    # env:
+    #   TF_LAMBDA_PACKAGE_LOG_LEVEL
     cmds:
       - terraform apply {{ if .CI }} -input=false {{ end }} tf.plan
 
   tf:destroy:
     desc: Destroy selected environment (approval required)
-    deps: [plan]
+    dir: terraform
+    deps: [tf:plan]
     cmds:
       - terraform destroy
 
 # Debugging
   tf:logs:enable:
       desc: Enable terraform debug logging
+      dir: terraform
       cmds:
           - toggle-debug-log on
   tf:logs:disable:
       desc: Disable terraform debug logging
+      dir: terraform
       cmds:
           - toggle-debug-log off
   tf:logs:parse-permissions:
       desc: Parse terraform debug log for required permissions
+      dir: terraform
       cmds:
           - "cat terraform.log | grep -E 'DEBUG: Request [^ ]+' -o | awk '{print $3}' | sort | uniq"
+
+# Other
+
+  upload_to_s3:
+    desc: Uploads client_data.json to S3. This triggers the entire workflow.
+    cmds:
+      - pass

@@ -222,7 +222,7 @@ pyvenv.cfg
 pip-selfcheck.json
 
 ### VisualStudioCode ###
-.vscode/*
+.vscode/
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
@@ -244,3 +244,14 @@ pip-selfcheck.json
 
 # virtualenv
 [Ss]hare/
+
+# ssh keys for sftp, infracost api key
+secrets/
+terraform/client_key.pub
+terraform/client_key
+
+# lambda builds
+terraform/builds/
+
+# terraform plans
+**/*.plan
